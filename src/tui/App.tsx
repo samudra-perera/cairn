@@ -8,7 +8,8 @@ const STATUS_ORDER: TaskStatus[] = ["todo", "doing", "review", "done"];
 
 function sortTasks(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => {
-    const statusDiff = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+    const statusDiff =
+      STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
     return statusDiff !== 0 ? statusDiff : a.id - b.id;
   });
 }
@@ -26,12 +27,19 @@ export function App() {
       if (selectedId !== null) setSelectedId(null);
       return;
     }
-    const clamped = Math.max(0, Math.min(selectedIndex, sortedTasks.length - 1));
+    const clamped = Math.max(
+      0,
+      Math.min(selectedIndex, sortedTasks.length - 1),
+    );
     const id = sortedTasks[clamped]?.id ?? null;
     if (id !== selectedId) setSelectedId(id);
   }, [sortedTasks, selectedIndex]);
 
   useInput((input, key) => {
+    if (input === "q") {
+      exit();
+      return;
+    }
     if (sortedTasks.length === 0) return;
     if (input === "j" || key.downArrow) {
       setSelectedIndex((i) => Math.min(i + 1, sortedTasks.length - 1));
@@ -39,8 +47,6 @@ export function App() {
       setSelectedIndex((i) => Math.max(i - 1, 0));
     } else if (key.tab) {
       // reserved for future panel cycling (Needs-You / Agents) — no-op for now
-    } else if (input === "q") {
-      exit();
     }
   });
 
