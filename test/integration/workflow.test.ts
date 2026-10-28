@@ -44,7 +44,12 @@ describe("integration: full task lifecycle", () => {
     const notes = listNotesForTask(db, task.id, { asAgent: false });
     expect(notes.length).toBe(1);
 
-    const searchResults = searchTasks(db, "jwt", { repo: "cairn", branch: "main", scope: "branch" }, { asAgent: false });
+    const searchResults = searchTasks(
+      db,
+      "jwt",
+      { repo: "cairn", branch: "main", scope: "branch" },
+      { asAgent: false },
+    );
     expect(searchResults.some((r) => r.taskId === task.id)).toBe(true);
   });
 });

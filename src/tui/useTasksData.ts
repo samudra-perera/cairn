@@ -37,7 +37,9 @@ export function useTasksData(selectedId: number | null): TasksData {
     const repoContext = getRepoContext();
 
     function refreshTasks() {
-      setTasks(listTasks(db, { repo: repoContext.repoId, branch: repoContext.branch, scope: "branch" }));
+      setTasks(
+        listTasks(db, { repo: repoContext.repoId, branch: repoContext.branch, scope: "branch" }),
+      );
       setLoading(false);
     }
 

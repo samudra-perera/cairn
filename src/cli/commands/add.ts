@@ -16,11 +16,16 @@ export function registerAddCommand(program: Command): void {
     .description("add a new task")
     .option("--owner <owner>", "who the task is for (defaults to 'me')")
     .option("--body <body>", "longer description")
-    .option("--ref <id>", "reference another task by id (repeatable)", (val: string, prev: number[]) => {
-      const n = parseInt(val, 10);
-      if (Number.isNaN(n)) throw new Error(`--ref must be a number, got "${val}"`);
-      return [...prev, n];
-    }, [] as number[])
+    .option(
+      "--ref <id>",
+      "reference another task by id (repeatable)",
+      (val: string, prev: number[]) => {
+        const n = parseInt(val, 10);
+        if (Number.isNaN(n)) throw new Error(`--ref must be a number, got "${val}"`);
+        return [...prev, n];
+      },
+      [] as number[],
+    )
     .action((title: string, rawOptions: unknown, thisCommand: Command) => {
       const options = optionsSchema.parse(rawOptions);
       const ctx = buildCliContext(thisCommand.optsWithGlobals());

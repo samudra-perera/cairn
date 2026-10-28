@@ -37,7 +37,8 @@ export function getRepoContext(cwd: string = process.cwd()): RepoContext {
   const branch = branchResult.stdout.length > 0 ? branchResult.stdout : null;
 
   const remoteResult = runGit(["remote", "get-url", "origin"], cwd);
-  const repoId = remoteResult.code === 0 && remoteResult.stdout.length > 0 ? remoteResult.stdout : repoRoot;
+  const repoId =
+    remoteResult.code === 0 && remoteResult.stdout.length > 0 ? remoteResult.stdout : repoRoot;
 
   return { repoId, repoRoot, branch };
 }

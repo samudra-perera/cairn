@@ -28,7 +28,8 @@ function upsertBlock(filePath: string): void {
 
   let next: string;
   if (startIdx !== -1 && endIdx !== -1) {
-    next = existing.slice(0, startIdx) + WORKFLOW_BLOCK + existing.slice(endIdx + END_MARKER.length);
+    next =
+      existing.slice(0, startIdx) + WORKFLOW_BLOCK + existing.slice(endIdx + END_MARKER.length);
   } else if (existing.trim().length === 0) {
     next = `${WORKFLOW_BLOCK}\n`;
   } else {

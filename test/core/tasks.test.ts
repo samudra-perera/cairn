@@ -43,8 +43,7 @@ describe("core/tasks", () => {
 
     const winner = winners[0];
     const loser = losers[0];
-    if (!winner?.ok || loser?.ok !== false)
-      throw new Error("unexpected claim shapes");
+    if (!winner?.ok || loser?.ok !== false) throw new Error("unexpected claim shapes");
 
     expect(loser.reason).toBe("already_claimed");
     expect(winner.task.claimedBy).not.toBeNull();
@@ -78,9 +77,7 @@ describe("core/tasks", () => {
       branch: null,
       createdBy: "me",
     });
-    expect(() => setStatus(db, task.id, "done", "claude", true)).toThrow(
-      InvalidTransitionError,
-    );
+    expect(() => setStatus(db, task.id, "done", "claude", true)).toThrow(InvalidTransitionError);
   });
 
   test("setStatus allows a human to set status to done directly", () => {
@@ -203,13 +200,7 @@ describe("core/tasks", () => {
       branch: null,
       createdBy: "me",
     });
-    const updated = completeTask(
-      db,
-      task.id,
-      "claude",
-      true,
-      "added jwt middleware",
-    );
+    const updated = completeTask(db, task.id, "claude", true, "added jwt middleware");
     expect(updated.status).toBe("review");
     expect(updated.doneAt).toBeNull();
     expect(updated.summary).toBe("added jwt middleware");
@@ -274,12 +265,7 @@ describe("core/tasks", () => {
       branch: "main",
       scope: "all",
     });
-    expect(allScoped.map((t) => t.title).sort()).toEqual([
-      "a",
-      "b",
-      "c",
-      "global",
-    ]);
+    expect(allScoped.map((t) => t.title).sort()).toEqual(["a", "b", "c", "global"]);
 
     const globalScoped = listTasks(db, {
       repo: null,

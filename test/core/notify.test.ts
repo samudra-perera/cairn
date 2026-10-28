@@ -8,7 +8,14 @@ describe("core/notify", () => {
   test("a note shows up exactly once across two sequential invocations", () => {
     const db = makeTestDb();
     const task = createTask(db, { title: "t", repo: null, branch: null, createdBy: "me" });
-    addNote(db, { taskId: task.id, repo: null, branch: null, author: "me", body: "use jose, not jsonwebtoken", isAgent: false });
+    addNote(db, {
+      taskId: task.id,
+      repo: null,
+      branch: null,
+      author: "me",
+      body: "use jose, not jsonwebtoken",
+      isAgent: false,
+    });
 
     const first = getNewNotifications(db, "claude");
     expect(first.length).toBe(1);
@@ -22,7 +29,14 @@ describe("core/notify", () => {
   test("a note written by the agent itself does not notify that agent", () => {
     const db = makeTestDb();
     const task = createTask(db, { title: "t", repo: null, branch: null, createdBy: "me" });
-    addNote(db, { taskId: task.id, repo: null, branch: null, author: "claude", body: "my own note", isAgent: true });
+    addNote(db, {
+      taskId: task.id,
+      repo: null,
+      branch: null,
+      author: "claude",
+      body: "my own note",
+      isAgent: true,
+    });
 
     const notifications = getNewNotifications(db, "claude");
     expect(notifications.length).toBe(0);
@@ -41,7 +55,14 @@ describe("core/notify", () => {
   test("two different agents each see their own unseen notifications independently", () => {
     const db = makeTestDb();
     const task = createTask(db, { title: "t", repo: null, branch: null, createdBy: "me" });
-    addNote(db, { taskId: task.id, repo: null, branch: null, author: "me", body: "hello", isAgent: false });
+    addNote(db, {
+      taskId: task.id,
+      repo: null,
+      branch: null,
+      author: "me",
+      body: "hello",
+      isAgent: false,
+    });
 
     markSeen(db, "claude");
     const claudeSees = getNewNotifications(db, "claude");

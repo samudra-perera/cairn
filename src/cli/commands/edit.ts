@@ -35,7 +35,9 @@ export function registerEditCommand(program: Command): void {
         writeFileSync(tmpPath, `# ${task.title}\n\n${task.body ?? ""}\n`);
 
         const editor = process.env.EDITOR ?? "vi";
-        const result = Bun.spawnSync([editor, tmpPath], { stdio: ["inherit", "inherit", "inherit"] });
+        const result = Bun.spawnSync([editor, tmpPath], {
+          stdio: ["inherit", "inherit", "inherit"],
+        });
         if (result.exitCode !== 0) {
           rmSync(tmpPath, { force: true });
           fail(ctx, `editor exited with code ${result.exitCode}`);

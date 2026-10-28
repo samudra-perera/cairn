@@ -8,7 +8,12 @@ describe("core/events", () => {
     const db = makeTestDb();
     const task = createTask(db, { title: "t", repo: null, branch: null, createdBy: "me" });
     // createTask already logs a 'created' event; add two more.
-    logEvent(db, { taskId: task.id, actor: "claude", kind: "claimed", data: { claimedBy: "claude" } });
+    logEvent(db, {
+      taskId: task.id,
+      actor: "claude",
+      kind: "claimed",
+      data: { claimedBy: "claude" },
+    });
     logEvent(db, { taskId: task.id, actor: "claude", kind: "summary", data: { summary: "done" } });
 
     const events = listEvents(db, task.id);
@@ -18,7 +23,12 @@ describe("core/events", () => {
   test("event data is stored and read back as the original JSON value", () => {
     const db = makeTestDb();
     const task = createTask(db, { title: "t", repo: null, branch: null, createdBy: "me" });
-    logEvent(db, { taskId: task.id, actor: "me", kind: "status", data: { from: "todo", to: "doing" } });
+    logEvent(db, {
+      taskId: task.id,
+      actor: "me",
+      kind: "status",
+      data: { from: "todo", to: "doing" },
+    });
 
     const [created, status] = listEvents(db, task.id);
     expect(created?.data).toEqual({ title: "t" });

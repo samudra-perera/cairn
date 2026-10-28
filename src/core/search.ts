@@ -19,7 +19,11 @@ interface NoteMatchRow {
   private: number;
 }
 
-function scopeClause(scope: Scope, column: "repo" | "t.repo", branchColumn: "branch" | "t.branch"): string[] {
+function scopeClause(
+  scope: Scope,
+  column: "repo" | "t.repo",
+  branchColumn: "branch" | "t.branch",
+): string[] {
   if (scope === "branch") return [`${column} IS ?`, `${branchColumn} IS ?`];
   if (scope === "repo") return [`${column} IS ?`];
   return [];
@@ -42,7 +46,11 @@ export function searchTasks(
   const ftsQuery = toPhraseQuery(query);
   const taskConditions = scopeClause(filter.scope, "repo", "branch");
   const taskParams: SQLQueryBindings[] =
-    filter.scope === "all" ? [] : filter.scope === "repo" ? [filter.repo] : [filter.repo, filter.branch];
+    filter.scope === "all"
+      ? []
+      : filter.scope === "repo"
+        ? [filter.repo]
+        : [filter.repo, filter.branch];
 
   const taskWhere = taskConditions.length > 0 ? `AND ${taskConditions.join(" AND ")}` : "";
   const taskRows = db
@@ -62,7 +70,11 @@ export function searchTasks(
 
   const noteConditions = scopeClause(filter.scope, "t.repo", "t.branch");
   const noteParams: SQLQueryBindings[] =
-    filter.scope === "all" ? [] : filter.scope === "repo" ? [filter.repo] : [filter.repo, filter.branch];
+    filter.scope === "all"
+      ? []
+      : filter.scope === "repo"
+        ? [filter.repo]
+        : [filter.repo, filter.branch];
 
   const noteWhere = noteConditions.length > 0 ? `AND ${noteConditions.join(" AND ")}` : "";
   const noteRows = db
@@ -78,7 +90,11 @@ export function searchTasks(
     .all(ftsQuery, ...noteParams);
 
   const noteResults: SearchResult[] = filterPrivate(
-    noteRows.map((row) => ({ taskId: row.task_id, snippet: row.snippet, private: row.private === 1 })),
+    noteRows.map((row) => ({
+      taskId: row.task_id,
+      snippet: row.snippet,
+      private: row.private === 1,
+    })),
     opts.asAgent,
   )
     .filter((row) => row.taskId !== null)

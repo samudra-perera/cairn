@@ -55,7 +55,13 @@ export function getNewNotifications(db: Database, agent: string): Notification[]
     .all(lastSeen, agent);
 
   const noteNotifications: Notification[] = filterPrivate(
-    noteRows.map((r) => ({ taskId: r.task_id, author: r.author, body: r.body, private: r.private === 1, createdAt: r.created_at })),
+    noteRows.map((r) => ({
+      taskId: r.task_id,
+      author: r.author,
+      body: r.body,
+      private: r.private === 1,
+      createdAt: r.created_at,
+    })),
     true,
   ).map((r) => ({
     kind: "note" as const,
@@ -94,7 +100,9 @@ export function getNewNotifications(db: Database, agent: string): Notification[]
     };
   });
 
-  return [...noteNotifications, ...eventNotifications].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return [...noteNotifications, ...eventNotifications].sort((a, b) =>
+    a.createdAt.localeCompare(b.createdAt),
+  );
 }
 
 export function markSeen(db: Database, agent: string, at?: string): void {

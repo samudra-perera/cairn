@@ -25,7 +25,9 @@ function parseArgs(args: string[]): { taskId: number | null; body: string } {
 export function registerNoteCommand(program: Command): void {
   program
     .command("note <args...>")
-    .description('add a note: `cairn note "text"` (standalone) or `cairn note <id> "text"` (on a task)')
+    .description(
+      'add a note: `cairn note "text"` (standalone) or `cairn note <id> "text"` (on a task)',
+    )
     .option("--private", "hide this note from agents (humans only)")
     .action((args: string[], rawOptions: unknown, thisCommand: Command) => {
       const options = optionsSchema.parse(rawOptions);

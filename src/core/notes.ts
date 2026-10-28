@@ -80,7 +80,12 @@ export function addNote(
   const note = rowToNote(row);
 
   if (note.taskId !== null) {
-    logEvent(db, { taskId: note.taskId, actor: note.author, kind: "noted", data: { private: note.private } });
+    logEvent(db, {
+      taskId: note.taskId,
+      actor: note.author,
+      kind: "noted",
+      data: { private: note.private },
+    });
   }
 
   return note;

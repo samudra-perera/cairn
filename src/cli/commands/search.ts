@@ -13,7 +13,9 @@ const optionsSchema = z.object({
 export function registerSearchCommand(program: Command): void {
   program
     .command("search <query>")
-    .description("full-text search across tasks and notes (defaults to the whole repo, all branches)")
+    .description(
+      "full-text search across tasks and notes (defaults to the whole repo, all branches)",
+    )
     .addOption(new Option("--branch", "search only the current branch").conflicts("all"))
     .addOption(new Option("--all", "search across all repos").conflicts("branch"))
     .action((query: string, rawOptions: unknown, thisCommand: Command) => {
@@ -21,7 +23,12 @@ export function registerSearchCommand(program: Command): void {
       const ctx = buildCliContext(thisCommand.optsWithGlobals());
 
       const scope = options.all ? "all" : options.branch ? "branch" : "repo";
-      const results = searchTasks(ctx.db, query, { repo: ctx.repo, branch: ctx.branch, scope }, { asAgent: ctx.isAgent });
+      const results = searchTasks(
+        ctx.db,
+        query,
+        { repo: ctx.repo, branch: ctx.branch, scope },
+        { asAgent: ctx.isAgent },
+      );
 
       emit(ctx, results, (items) => {
         if (items.length === 0) {

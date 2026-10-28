@@ -1,13 +1,7 @@
 import type { Database } from "bun:sqlite";
 
 export type EventKind =
-  | "created"
-  | "claimed"
-  | "status"
-  | "noted"
-  | "summary"
-  | "assigned"
-  | string;
+  "created" | "claimed" | "status" | "noted" | "summary" | "assigned" | string;
 
 export interface Event {
   id: number;
@@ -64,10 +58,9 @@ export function logEvent(
 
 export function listEvents(db: Database, taskId: number): Event[] {
   const rows = db
-    .query<
-      EventRow,
-      [number]
-    >(`SELECT * FROM events WHERE task_id = ? ORDER BY created_at ASC, id ASC`)
+    .query<EventRow, [number]>(
+      `SELECT * FROM events WHERE task_id = ? ORDER BY created_at ASC, id ASC`,
+    )
     .all(taskId);
   return rows.map(rowToEvent);
 }

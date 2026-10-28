@@ -8,8 +8,7 @@ const STATUS_ORDER: TaskStatus[] = ["todo", "doing", "review", "done"];
 
 function sortTasks(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => {
-    const statusDiff =
-      STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+    const statusDiff = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
     return statusDiff !== 0 ? statusDiff : a.id - b.id;
   });
 }
@@ -27,10 +26,7 @@ export function App() {
       if (selectedId !== null) setSelectedId(null);
       return;
     }
-    const clamped = Math.max(
-      0,
-      Math.min(selectedIndex, sortedTasks.length - 1),
-    );
+    const clamped = Math.max(0, Math.min(selectedIndex, sortedTasks.length - 1));
     const id = sortedTasks[clamped]?.id ?? null;
     if (id !== selectedId) setSelectedId(id);
   }, [sortedTasks, selectedIndex]);

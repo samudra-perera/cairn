@@ -77,16 +77,7 @@ export function createTask(
   const row = db
     .query<
       TaskRow,
-      [
-        string,
-        string | null,
-        string,
-        string | null,
-        string | null,
-        string,
-        string,
-        string,
-      ]
+      [string, string | null, string, string | null, string | null, string, string, string]
     >(
       `INSERT INTO tasks (title, body, owner, repo, branch, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -107,9 +98,10 @@ export function createTask(
   const task = rowToTask(row);
 
   for (const toId of input.refs ?? []) {
-    db.query<unknown, [number, number]>(
-      `INSERT INTO refs (from_id, to_id) VALUES (?, ?)`,
-    ).run(task.id, toId);
+    db.query<unknown, [number, number]>(`INSERT INTO refs (from_id, to_id) VALUES (?, ?)`).run(
+      task.id,
+      toId,
+    );
   }
 
   logEvent(db, {
@@ -152,22 +144,16 @@ export function listTasks(
     params.push(filter.status);
   }
 
-  const where =
-    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
   const rows = db
-    .query<
-      TaskRow,
-      SQLQueryBindings[]
-    >(`SELECT * FROM tasks ${where} ORDER BY created_at ASC`)
+    .query<TaskRow, SQLQueryBindings[]>(`SELECT * FROM tasks ${where} ORDER BY created_at ASC`)
     .all(...params);
 
   return rows.map(rowToTask);
 }
 
 export function getTask(db: Database, id: number): Task {
-  const row = db
-    .query<TaskRow, [number]>(`SELECT * FROM tasks WHERE id = ?`)
-    .get(id);
+  const row = db.query<TaskRow, [number]>(`SELECT * FROM tasks WHERE id = ?`).get(id);
   if (!row) throw new TaskNotFoundError(`task ${id} not found`);
   return rowToTask(row);
 }
@@ -176,9 +162,7 @@ export function claimTask(
   db: Database,
   id: number,
   agent: string,
-):
-  | { ok: true; task: Task }
-  | { ok: false; reason: "not_found" | "already_claimed" } {
+): { ok: true; task: Task } | { ok: false; reason: "not_found" | "already_claimed" } {
   const now = new Date().toISOString();
   const row = db
     .query<TaskRow, [string, string, number]>(
@@ -201,9 +185,7 @@ export function claimTask(
     return { ok: true, task: rowToTask(row) };
   }
 
-  const exists = db
-    .query<{ id: number }, [number]>(`SELECT id FROM tasks WHERE id = ?`)
-    .get(id);
+  const exists = db.query<{ id: number }, [number]>(`SELECT id FROM tasks WHERE id = ?`).get(id);
   return { ok: false, reason: exists ? "already_claimed" : "not_found" };
 }
 
@@ -213,19 +195,16 @@ export function assignTask(
   assignee: string,
   actor: string,
 ): { ok: true; task: Task } | { ok: false; reason: "not_found" } {
-  const existing = db
-    .query<TaskRow, [number]>(`SELECT * FROM tasks WHERE id = ?`)
-    .get(id);
+  const existing = db.query<TaskRow, [number]>(`SELECT * FROM tasks WHERE id = ?`).get(id);
   if (!existing) return { ok: false, reason: "not_found" };
 
   //There is the possibilty in the future that there could be a race condition
   //where different process accessing the update may have stale infomation
   const now = new Date().toISOString();
   const row = db
-    .query<
-      TaskRow,
-      [string, string, number]
-    >(`UPDATE tasks SET claimed_by = ?, updated_at = ? WHERE id = ? RETURNING *`)
+    .query<TaskRow, [string, string, number]>(
+      `UPDATE tasks SET claimed_by = ?, updated_at = ? WHERE id = ? RETURNING *`,
+    )
     .get(assignee, now, id);
 
   if (!row) return { ok: false, reason: "not_found" };
@@ -257,10 +236,9 @@ export function setStatus(
   const doneAt = status === "done" ? now : existing.doneAt;
 
   const row = db
-    .query<
-      TaskRow,
-      [TaskStatus, string | null, string, number]
-    >(`UPDATE tasks SET status = ?, done_at = ?, updated_at = ? WHERE id = ? RETURNING *`)
+    .query<TaskRow, [TaskStatus, string | null, string, number]>(
+      `UPDATE tasks SET status = ?, done_at = ?, updated_at = ? WHERE id = ? RETURNING *`,
+    )
     .get(status, doneAt, now, id);
 
   if (!row) throw new TaskNotFoundError(`task ${id} not found`);
@@ -286,10 +264,9 @@ export function completeTask(
   const doneAt = !isAgent ? now : existing.doneAt;
 
   const row = db
-    .query<
-      TaskRow,
-      [TaskStatus, string, string | null, string, number]
-    >(`UPDATE tasks SET status = ?, summary = ?, done_at = ?, updated_at = ? WHERE id = ? RETURNING *`)
+    .query<TaskRow, [TaskStatus, string, string | null, string, number]>(
+      `UPDATE tasks SET status = ?, summary = ?, done_at = ?, updated_at = ? WHERE id = ? RETURNING *`,
+    )
     .get(newStatus, summary, doneAt, now, id);
 
   if (!row) throw new TaskNotFoundError(`task ${id} not found`);
@@ -316,10 +293,9 @@ export function updateTaskContent(
   const now = new Date().toISOString();
 
   const row = db
-    .query<
-      TaskRow,
-      [string, string | null, string, number]
-    >(`UPDATE tasks SET title = ?, body = ?, updated_at = ? WHERE id = ? RETURNING *`)
+    .query<TaskRow, [string, string | null, string, number]>(
+      `UPDATE tasks SET title = ?, body = ?, updated_at = ? WHERE id = ? RETURNING *`,
+    )
     .get(title, body, now, id);
 
   if (!row) throw new TaskNotFoundError(`task ${id} not found`);
