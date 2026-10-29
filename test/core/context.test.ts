@@ -78,6 +78,8 @@ describe("core/context", () => {
 
   test("getAgent / isAgentCaller / callerIdentity reflect CAIRN_AGENT", () => {
     const prior = process.env.CAIRN_AGENT;
+    const priorConfig = process.env.CAIRN_CONFIG_PATH;
+    process.env.CAIRN_CONFIG_PATH = join(tmpDir, "no-config.json");
     try {
       delete process.env.CAIRN_AGENT;
       expect(getAgent()).toBeNull();
@@ -91,6 +93,8 @@ describe("core/context", () => {
     } finally {
       if (prior === undefined) delete process.env.CAIRN_AGENT;
       else process.env.CAIRN_AGENT = prior;
+      if (priorConfig === undefined) delete process.env.CAIRN_CONFIG_PATH;
+      else process.env.CAIRN_CONFIG_PATH = priorConfig;
     }
   });
 
