@@ -2,8 +2,9 @@ import { Box } from "ink";
 import type { Task } from "../core/tasks";
 import type { Event } from "../core/events";
 import type { Note } from "../core/notes";
-import { TasksPanel } from "./TasksPanel";
+import { STATUS_ORDER, TasksPanel } from "./TasksPanel";
 import { DetailPanel } from "./DetailPanel";
+import { StatusPicker } from "./StatusPicker";
 
 interface Props {
   tasks: Task[];
@@ -11,19 +12,36 @@ interface Props {
   selectedTask: Task | null;
   events: Event[];
   notes: Note[];
+  pickerOpen: boolean;
+  pickerIndex: number;
 }
 
 /**
  * Layout seam for the rest of v0's TUI: the top slot is reserved for the
  * future "Needs you" / "Agents" panels, left empty rather than built now.
  */
-export function PanelRouter({ tasks, selectedId, selectedTask, events, notes }: Props) {
+export function PanelRouter({
+  tasks,
+  selectedId,
+  selectedTask,
+  events,
+  notes,
+  pickerOpen,
+  pickerIndex,
+}: Props) {
   return (
     <Box flexDirection="column">
       <Box flexDirection="row">
         <TasksPanel tasks={tasks} selectedId={selectedId} />
         <DetailPanel task={selectedTask} events={events} notes={notes} />
       </Box>
+      {pickerOpen && selectedTask && (
+        <StatusPicker
+          statuses={STATUS_ORDER}
+          highlighted={pickerIndex}
+          current={selectedTask.status}
+        />
+      )}
     </Box>
   );
 }

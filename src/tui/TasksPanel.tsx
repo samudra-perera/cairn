@@ -1,7 +1,7 @@
 import { Box, Text } from "ink";
 import type { Task, TaskStatus } from "../core/tasks";
 
-const STATUS_ORDER: TaskStatus[] = ["todo", "doing", "review", "done"];
+export const STATUS_ORDER: TaskStatus[] = ["todo", "doing", "review", "done"];
 const STATUS_LABEL: Record<TaskStatus, string> = {
   todo: "Todo",
   doing: "Doing",

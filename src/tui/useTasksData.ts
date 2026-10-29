@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { Database } from "bun:sqlite";
 import { getDataVersion, openDb } from "../core/db";
 import { getAgent, getRepoContext } from "../core/context";
-import { type Task, listTasks } from "../core/tasks";
+import { type Task, type TaskStatus, listTasks, setStatus } from "../core/tasks";
 import { type Event, listEvents } from "../core/events";
 import { type Note, listNotesForTask } from "../core/notes";
 
@@ -11,6 +11,7 @@ export interface TasksData {
   events: Event[];
   notes: Note[];
   loading: boolean;
+  changeStatus: (id: number, status: TaskStatus) => void;
 }
 
 let sharedDb: Database | null = null;
@@ -32,17 +33,22 @@ export function useTasksData(selectedId: number | null): TasksData {
   const [loading, setLoading] = useState(true);
   const lastVersionRef = useRef<number | null>(null);
 
-  useEffect(() => {
+  function refreshTasks() {
     const db = getSharedDb();
     const repoContext = getRepoContext();
+    setTasks(
+      listTasks(db, { repo: repoContext.repoId, branch: repoContext.branch, scope: "branch" }),
+    );
+    setLoading(false);
+  }
 
-    function refreshTasks() {
-      setTasks(
-        listTasks(db, { repo: repoContext.repoId, branch: repoContext.branch, scope: "branch" }),
-      );
-      setLoading(false);
-    }
+  function changeStatus(id: number, status: TaskStatus) {
+    setStatus(getSharedDb(), id, status, "me", false);
+    refreshTasks();
+  }
 
+  useEffect(() => {
+    const db = getSharedDb();
     refreshTasks();
     const interval = setInterval(() => {
       const version = getDataVersion(db);
@@ -71,5 +77,5 @@ export function useTasksData(selectedId: number | null): TasksData {
     // notes/events from the same 1s data_version poll, not just selection changes.
   }, [selectedId, tasks]);
 
-  return { tasks, events, notes, loading };
+  return { tasks, events, notes, loading, changeStatus };
 }
