@@ -1,7 +1,49 @@
+import { z } from "zod";
+import type { Event } from "./events";
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
 const WEEK = 7 * DAY;
+
+const statusData = z.object({ from: z.string(), to: z.string() });
+const assignedData = z.object({ assignedTo: z.string(), previous: z.string().nullable() });
+const notedData = z.object({ private: z.boolean() });
+
+/**
+ * Turns an event into the part of a timeline line that follows the actor,
+ * e.g. "moved todo → review". Event data is stored as unknown JSON, so each
+ * kind is validated before use; anything unrecognised or malformed falls back
+ * to the raw kind so an odd row can never break the timeline.
+ */
+export function describeEvent(event: Event): string {
+  switch (event.kind) {
+    case "created":
+      return "created the task";
+    case "claimed":
+      return "claimed it";
+    case "edited":
+      return "edited the task";
+    case "summary":
+      return "added a summary";
+    case "status": {
+      const data = statusData.safeParse(event.data);
+      return data.success ? `moved ${data.data.from} → ${data.data.to}` : event.kind;
+    }
+    case "assigned": {
+      const data = assignedData.safeParse(event.data);
+      if (!data.success) return event.kind;
+      const was = data.data.previous ? ` (was ${data.data.previous})` : "";
+      return `assigned to ${data.data.assignedTo}${was}`;
+    }
+    case "noted": {
+      const data = notedData.safeParse(event.data);
+      return data.success && data.data.private ? "added a private note" : "added a note";
+    }
+    default:
+      return event.kind;
+  }
+}
 
 export function formatRelative(then: Date, now: Date): string {
   const diff = now.getTime() - then.getTime();

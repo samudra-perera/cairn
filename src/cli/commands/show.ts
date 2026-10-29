@@ -4,7 +4,7 @@ import { emit, fail } from "../output";
 import { TaskNotFoundError, getTask } from "../../core/tasks";
 import { listEvents } from "../../core/events";
 import { listNotesForTask } from "../../core/notes";
-import { formatTimestamp } from "../../core/format";
+import { describeEvent, formatTimestamp } from "../../core/format";
 
 export function registerShowCommand(program: Command): void {
   program
@@ -31,7 +31,7 @@ export function registerShowCommand(program: Command): void {
           }
           console.log(`\ntimeline:`);
           for (const e of events) {
-            console.log(`  ${formatTimestamp(e.createdAt)} ${e.actor} ${e.kind}`);
+            console.log(`  ${formatTimestamp(e.createdAt)} ${e.actor} ${describeEvent(e)}`);
           }
         });
       } catch (err) {

@@ -2,7 +2,7 @@ import { Box, Text } from "ink";
 import type { Task } from "../core/tasks";
 import type { Event } from "../core/events";
 import type { Note } from "../core/notes";
-import { formatTimestamp } from "../core/format";
+import { describeEvent, formatTimestamp } from "../core/format";
 
 interface TimelineItem {
   createdAt: string;
@@ -12,7 +12,7 @@ interface TimelineItem {
 function buildTimeline(events: Event[], notes: Note[]): TimelineItem[] {
   const fromEvents: TimelineItem[] = events.map((e) => ({
     createdAt: e.createdAt,
-    label: `${e.actor} ${e.kind}`,
+    label: `${e.actor} ${describeEvent(e)}`,
   }));
   const fromNotes: TimelineItem[] = notes.map((n) => ({
     createdAt: n.createdAt,

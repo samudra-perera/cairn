@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { formatRelative, formatTimestamp } from "../../src/core/format";
+import { describeEvent, formatRelative, formatTimestamp } from "../../src/core/format";
+import type { Event } from "../../src/core/events";
 
 const now = new Date("2026-10-28T20:05:00.000Z");
 const ago = (ms: number) => new Date(now.getTime() - ms);
@@ -64,6 +65,54 @@ describe("core/format", () => {
 
     test("an unparseable timestamp is returned unchanged", () => {
       expect(formatTimestamp("not a date", now, "UTC")).toBe("not a date");
+    });
+  });
+
+  describe("describeEvent", () => {
+    const ev = (kind: string, data: unknown): Event => ({
+      id: 1,
+      taskId: 1,
+      actor: "me",
+      kind,
+      data,
+      createdAt: "2026-10-28T20:05:00.000Z",
+    });
+
+    test("status shows from and to", () => {
+      expect(describeEvent(ev("status", { from: "todo", to: "review" }))).toBe(
+        "moved todo → review",
+      );
+    });
+
+    test("assigned shows the assignee, and the previous one on reassignment", () => {
+      expect(describeEvent(ev("assigned", { assignedTo: "claude", previous: null }))).toBe(
+        "assigned to claude",
+      );
+      expect(describeEvent(ev("assigned", { assignedTo: "claude", previous: "pi" }))).toBe(
+        "assigned to claude (was pi)",
+      );
+    });
+
+    test("noted distinguishes private notes", () => {
+      expect(describeEvent(ev("noted", { private: false }))).toBe("added a note");
+      expect(describeEvent(ev("noted", { private: true }))).toBe("added a private note");
+    });
+
+    test("kinds without useful data have fixed descriptions", () => {
+      expect(describeEvent(ev("created", { title: "t" }))).toBe("created the task");
+      expect(describeEvent(ev("claimed", { claimedBy: "pi" }))).toBe("claimed it");
+      expect(describeEvent(ev("edited", {}))).toBe("edited the task");
+      expect(describeEvent(ev("summary", { summary: "s" }))).toBe("added a summary");
+    });
+
+    test("malformed or missing data falls back to the raw kind", () => {
+      expect(describeEvent(ev("status", null))).toBe("status");
+      expect(describeEvent(ev("status", { from: "todo" }))).toBe("status");
+      expect(describeEvent(ev("assigned", { assignedTo: 5 }))).toBe("assigned");
+    });
+
+    test("an unknown kind is returned as is", () => {
+      expect(describeEvent(ev("teleported", {}))).toBe("teleported");
     });
   });
 });
