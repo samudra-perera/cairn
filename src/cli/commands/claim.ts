@@ -10,7 +10,7 @@ export function registerClaimCommand(program: Command): void {
     .action((idArg: string, _rawOptions: unknown, thisCommand: Command) => {
       const ctx = buildCliContext(thisCommand.optsWithGlobals());
       const id = parseInt(idArg, 10);
-      const actor = ctx.agent ?? "me";
+      const actor = ctx.actor;
 
       const result = claimTask(ctx.db, id, actor);
       if (!result.ok) {

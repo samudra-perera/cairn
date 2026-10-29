@@ -1,3 +1,5 @@
+import { getUserName } from "./config";
+
 export interface RepoContext {
   repoId: string | null;
   repoRoot: string | null;
@@ -53,5 +55,5 @@ export function isAgentCaller(): boolean {
 }
 
 export function callerIdentity(): string {
-  return getAgent() ?? "me";
+  return getAgent() ?? getUserName() ?? "me";
 }

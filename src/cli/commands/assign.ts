@@ -2,6 +2,7 @@ import type { Command } from "commander";
 import { buildCliContext } from "../context";
 import { emit, fail } from "../output";
 import { assignTask } from "../../core/tasks";
+import { validateName } from "../../core/names";
 
 export function registerAssignTaskCommand(program: Command): void {
   program
@@ -10,12 +11,11 @@ export function registerAssignTaskCommand(program: Command): void {
     .action((idArg: string, agentArg: string, _rawOptions: unknown, thisCommand: Command) => {
       const ctx = buildCliContext(thisCommand.optsWithGlobals());
       const id = parseInt(idArg, 10);
-      const actor = ctx.agent ?? "me";
+      const actor = ctx.actor;
 
       const assignee = agentArg.trim();
-      if (assignee.length === 0) {
-        fail(ctx, "agent name cannot be empty");
-      }
+      const nameError = validateName(assignee);
+      if (nameError) fail(ctx, nameError);
 
       const result = assignTask(ctx.db, id, assignee, actor);
       if (!result.ok) {

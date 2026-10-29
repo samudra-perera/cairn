@@ -19,7 +19,7 @@ export function registerDoneCommand(program: Command): void {
       const options = optionsSchema.parse(rawOptions);
 
       try {
-        const task = completeTask(ctx.db, id, ctx.agent ?? "me", ctx.isAgent, options.summary);
+        const task = completeTask(ctx.db, id, ctx.actor, ctx.isAgent, options.summary);
         emit(ctx, task, (t) => {
           console.log(`#${t.id} -> ${t.status}`);
         });

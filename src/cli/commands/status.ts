@@ -19,7 +19,7 @@ export function registerStatusCommand(program: Command): void {
       }
 
       try {
-        const task = setStatus(ctx.db, id, parsed.data, ctx.agent ?? "me", ctx.isAgent);
+        const task = setStatus(ctx.db, id, parsed.data, ctx.actor, ctx.isAgent);
         emit(ctx, task, (t) => {
           console.log(`#${t.id} status -> ${t.status}`);
         });

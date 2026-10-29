@@ -49,7 +49,7 @@ export function registerEditCommand(program: Command): void {
         const { title, body } = parseMarkdown(content);
         if (!title) fail(ctx, "title cannot be empty");
 
-        const updated = updateTaskContent(ctx.db, id, { title, body }, ctx.agent ?? "me");
+        const updated = updateTaskContent(ctx.db, id, { title, body }, ctx.actor);
         emit(ctx, updated, (t) => {
           console.log(`#${t.id} updated`);
         });

@@ -1,7 +1,10 @@
 import type { Command } from "commander";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createInterface } from "node:readline/promises";
 import { buildCliContext } from "../context";
-import { emit } from "../output";
+import { emit, fail } from "../output";
+import { getUserName, setUserName } from "../../core/config";
+import { validateName } from "../../core/names";
 
 const START_MARKER = "<!-- cairn:start -->";
 const END_MARKER = "<!-- cairn:end -->";
@@ -39,16 +42,49 @@ function upsertBlock(filePath: string): void {
   writeFileSync(filePath, next);
 }
 
+async function promptForName(current: string | null): Promise<string | null> {
+  const rl = createInterface({ input: process.stdin, output: process.stderr });
+  try {
+    const suffix = current ? ` [${current}]` : "";
+    const answer = (
+      await rl.question(`Your name (shown on tasks and events you create)${suffix}: `)
+    ).trim();
+    return answer.length > 0 ? answer : current;
+  } finally {
+    rl.close();
+  }
+}
+
 export function registerInitCommand(program: Command): void {
   program
     .command("init")
-    .description("write the agent workflow instructions into AGENTS.md and CLAUDE.md")
-    .action((_rawOptions: unknown, thisCommand: Command) => {
-      const ctx = buildCliContext(thisCommand.optsWithGlobals());
+    .description(
+      "set your name and write the agent workflow instructions into AGENTS.md and CLAUDE.md",
+    )
+    .option("--name <name>", "your name, instead of being prompted")
+    .action(async (rawOptions: { name?: string }, thisCommand: Command) => {
+      const ctx = buildCliContext({ ...thisCommand.optsWithGlobals(), skipIdentityHint: true });
+
+      const current = getUserName();
+      let name = rawOptions.name?.trim() || null;
+      if (rawOptions.name !== undefined) {
+        const nameError = validateName(name ?? "");
+        if (nameError) fail(ctx, nameError);
+      } else if (process.stdin.isTTY) {
+        name = await promptForName(current);
+        const nameError = name ? validateName(name) : null;
+        if (nameError) fail(ctx, nameError);
+      }
+      if (name) setUserName(name);
+
       upsertBlock("AGENTS.md");
       upsertBlock("CLAUDE.md");
 
-      emit(ctx, { files: ["AGENTS.md", "CLAUDE.md"] }, ({ files }) => {
+      const saved = name ?? current;
+      emit(ctx, { name: saved, files: ["AGENTS.md", "CLAUDE.md"] }, ({ name, files }) => {
+        console.log(
+          name ? `Hello, ${name}.` : "No name set; run `cairn init --name <name>` to set one.",
+        );
         console.log(`Wrote cairn workflow instructions to ${files.join(" and ")}.`);
       });
     });

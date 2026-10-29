@@ -39,7 +39,7 @@ export function registerNoteCommand(program: Command): void {
           taskId,
           repo: ctx.repo,
           branch: ctx.branch,
-          author: ctx.agent ?? "me",
+          author: ctx.actor,
           body,
           private: options.private ?? false,
           isAgent: ctx.isAgent,

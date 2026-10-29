@@ -14,7 +14,7 @@ export function registerAddCommand(program: Command): void {
   program
     .command("add <title>")
     .description("add a new task")
-    .option("--owner <owner>", "who the task is for (defaults to 'me')")
+    .option("--owner <owner>", "who the task is for (defaults to your name)")
     .option("--body <body>", "longer description")
     .option(
       "--ref <id>",
@@ -33,10 +33,10 @@ export function registerAddCommand(program: Command): void {
       const task = createTask(ctx.db, {
         title,
         body: options.body ?? null,
-        owner: options.owner,
+        owner: options.owner ?? ctx.userName,
         repo: ctx.repo,
         branch: ctx.branch,
-        createdBy: ctx.agent ?? "me",
+        createdBy: ctx.actor,
         refs: options.ref,
       });
 

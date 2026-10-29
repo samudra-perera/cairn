@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Database } from "bun:sqlite";
 import { getDataVersion, openDb } from "../core/db";
-import { getAgent, getRepoContext } from "../core/context";
+import { callerIdentity, getAgent, getRepoContext } from "../core/context";
 import { type Task, type TaskStatus, listTasks, setStatus } from "../core/tasks";
 import { type Event, listEvents } from "../core/events";
 import { type Note, listNotesForTask } from "../core/notes";
@@ -43,7 +43,7 @@ export function useTasksData(selectedId: number | null): TasksData {
   }
 
   function changeStatus(id: number, status: TaskStatus) {
-    setStatus(getSharedDb(), id, status, "me", false);
+    setStatus(getSharedDb(), id, status, callerIdentity(), false);
     refreshTasks();
   }
 
