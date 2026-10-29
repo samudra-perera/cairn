@@ -2,6 +2,7 @@ import { Box, Text } from "ink";
 import type { Task } from "../core/tasks";
 import type { Event } from "../core/events";
 import type { Note } from "../core/notes";
+import { formatTimestamp } from "../core/format";
 
 interface TimelineItem {
   createdAt: string;
@@ -51,7 +52,7 @@ export function DetailPanel({ task, events, notes }: Props) {
         {timeline.length === 0 && <Text dimColor>No activity yet.</Text>}
         {timeline.map((item, i) => (
           <Text key={i}>
-            {item.createdAt} {item.label}
+            {formatTimestamp(item.createdAt)} {item.label}
           </Text>
         ))}
       </Box>
