@@ -1,10 +1,10 @@
 import type { Command } from "commander";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { createInterface } from "node:readline/promises";
 import { buildCliContext } from "../context";
 import { emit, fail } from "../output";
 import { getUserName, setUserName } from "../../core/config";
 import { validateName } from "../../core/names";
+import { ask } from "../prompt";
 
 const START_MARKER = "<!-- cairn:start -->";
 const END_MARKER = "<!-- cairn:end -->";
@@ -20,6 +20,8 @@ so your actions are attributed and you get piggyback notifications.
 2. **Claim:** \`cairn claim <id>\`.
 3. **While working:** \`cairn note <id> "<text>"\` for decisions, dead ends, or gotchas. Any new notes from the human print automatically before each command's output — read them.
 4. **When finished:** \`cairn done <id> --summary "<text>"\` covering what changed, why, and any gotchas. This moves the task to review, not done — the human reviews and finalizes it.
+
+If the human asks you to put something on their personal list (errands, applications), use \`cairn me add "<title>" [--weekly <n>]\`. You can add to it but not read it.
 
 Other commands: \`cairn list\` (tasks in the current repo+branch), \`cairn show <id>\` (full detail + timeline), \`cairn add "<title>"\` (create a task), \`cairn status <id> <status>\`. Every command supports \`--json\`.
 ${END_MARKER}`;
@@ -43,16 +45,9 @@ function upsertBlock(filePath: string): void {
 }
 
 async function promptForName(current: string | null): Promise<string | null> {
-  const rl = createInterface({ input: process.stdin, output: process.stderr });
-  try {
-    const suffix = current ? ` [${current}]` : "";
-    const answer = (
-      await rl.question(`Your name (shown on tasks and events you create)${suffix}: `)
-    ).trim();
-    return answer.length > 0 ? answer : current;
-  } finally {
-    rl.close();
-  }
+  const suffix = current ? ` [${current}]` : "";
+  const answer = await ask(`Your name (shown on tasks and events you create)${suffix}: `);
+  return answer.length > 0 ? answer : current;
 }
 
 export function registerInitCommand(program: Command): void {

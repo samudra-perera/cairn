@@ -10,5 +10,7 @@ so your actions are attributed and you get piggyback notifications.
 3. **While working:** `cairn note <id> "<text>"` for decisions, dead ends, or gotchas. Any new notes from the human print automatically before each command's output — read them.
 4. **When finished:** `cairn done <id> --summary "<text>"` covering what changed, why, and any gotchas. This moves the task to review, not done — the human reviews and finalizes it.
 
+If the human asks you to put something on their personal list (errands, applications), use `cairn me add "<title>" [--weekly <n>]`. You can add to it but not read it.
+
 Other commands: `cairn list` (tasks in the current repo+branch), `cairn show <id>` (full detail + timeline), `cairn add "<title>"` (create a task), `cairn status <id> <status>`. Every command supports `--json`.
 <!-- cairn:end -->

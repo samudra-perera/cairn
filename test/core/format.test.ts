@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { describeEvent, formatRelative, formatTimestamp } from "../../src/core/format";
+import {
+  describeEvent,
+  describePersonalItem,
+  formatRelative,
+  formatTimestamp,
+} from "../../src/core/format";
+import type { PersonalItemView } from "../../src/core/personal";
 import type { Event } from "../../src/core/events";
 
 const now = new Date("2026-10-28T20:05:00.000Z");
@@ -113,6 +119,35 @@ describe("core/format", () => {
 
     test("an unknown kind is returned as is", () => {
       expect(describeEvent(ev("teleported", {}))).toBe("teleported");
+    });
+  });
+
+  describe("describePersonalItem", () => {
+    const view = (over: Partial<PersonalItemView>): PersonalItemView => ({
+      id: 1,
+      title: "t",
+      targetPerWeek: 3,
+      createdAt: "2026-11-01T00:00:00.000Z",
+      doneToday: false,
+      doneThisWeek: 0,
+      streak: 0,
+      settled: false,
+      ...over,
+    });
+
+    test("recurring shows progress, plus streak and done-today when they apply", () => {
+      expect(describePersonalItem(view({}))).toBe("0/3 this week");
+      expect(describePersonalItem(view({ doneThisWeek: 1, streak: 2 }))).toBe(
+        "1/3 this week · streak 2",
+      );
+      expect(describePersonalItem(view({ doneThisWeek: 2, doneToday: true, streak: 1 }))).toBe(
+        "2/3 this week · streak 1 · done today",
+      );
+    });
+
+    test("a one-off has no progress text until it's done", () => {
+      expect(describePersonalItem(view({ targetPerWeek: null }))).toBe("");
+      expect(describePersonalItem(view({ targetPerWeek: null, doneToday: true }))).toBe("done");
     });
   });
 });

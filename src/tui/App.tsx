@@ -4,6 +4,8 @@ import type { Task } from "../core/tasks";
 import { useTasksData } from "./useTasksData";
 import { PanelRouter } from "./PanelRouter";
 import { STATUS_ORDER } from "./TasksPanel";
+import { PersonalView } from "./PersonalView";
+import { useCursor } from "./useCursor";
 
 function sortTasks(tasks: Task[]): Task[] {
   return [...tasks].sort((a, b) => {
@@ -14,24 +16,24 @@ function sortTasks(tasks: Task[]): Task[] {
 
 export function App() {
   const { exit } = useApp();
-  const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerIndex, setPickerIndex] = useState(0);
+  const picker = useCursor(STATUS_ORDER.length);
   const [showAll, setShowAll] = useState(false);
+  const [view, setView] = useState<"tasks" | "personal">("tasks");
 
   const data = useTasksData(selectedId, showAll);
   const sortedTasks = useMemo(() => sortTasks(data.tasks), [data.tasks]);
+  const list = useCursor(sortedTasks.length);
 
   useEffect(() => {
     if (sortedTasks.length === 0) {
       if (selectedId !== null) setSelectedId(null);
       return;
     }
-    const clamped = Math.max(0, Math.min(selectedIndex, sortedTasks.length - 1));
-    const id = sortedTasks[clamped]?.id ?? null;
+    const id = sortedTasks[list.index]?.id ?? null;
     if (id !== selectedId) setSelectedId(id);
-  }, [sortedTasks, selectedIndex]);
+  }, [sortedTasks, list.index]);
 
   useInput((input, key) => {
     //We have the pickerOpen as the owner of q and j/k while open
@@ -41,30 +43,32 @@ export function App() {
         return;
       }
       if (key.return) {
-        const chosen = STATUS_ORDER[pickerIndex];
+        const chosen = STATUS_ORDER[picker.index];
         if (selectedTask && chosen && chosen !== selectedTask.status) {
           data.changeStatus(selectedTask.id, chosen);
           // The following code is so the cursor follows where the changes move to
           const moved = sortTasks(
             sortedTasks.map((t) => (t.id === selectedTask.id ? { ...t, status: chosen } : t)),
           );
-          setSelectedIndex(moved.findIndex((t) => t.id === selectedTask.id));
+          list.set(moved.findIndex((t) => t.id === selectedTask.id));
         }
         setPickerOpen(false);
         return;
       }
-      if (input === "j" || key.downArrow) {
-        setPickerIndex((i) => Math.min(i + 1, STATUS_ORDER.length - 1));
-      }
-      if (input === "k" || key.upArrow) {
-        setPickerIndex((i) => Math.max(i - 1, 0));
-      }
+      if (input === "j" || key.downArrow) picker.next();
+      if (input === "k" || key.upArrow) picker.prev();
       return;
     }
     if (input === "q") {
       exit();
       return;
     }
+    if (input === "p") {
+      setView((v) => (v === "tasks" ? "personal" : "tasks"));
+      return;
+    }
+    // PersonalView handles every other key while it's showing.
+    if (view === "personal") return;
     if (input === "a") {
       setShowAll((v) => !v);
       return;
@@ -72,20 +76,22 @@ export function App() {
     if (sortedTasks.length === 0) return;
 
     if (input === "u" && selectedTask) {
-      setPickerIndex(STATUS_ORDER.indexOf(selectedTask.status));
+      picker.set(STATUS_ORDER.indexOf(selectedTask.status));
       setPickerOpen(true);
       return;
     }
     if (input === "j" || key.downArrow) {
-      setSelectedIndex((i) => Math.min(i + 1, sortedTasks.length - 1));
+      list.next();
     } else if (input === "k" || key.upArrow) {
-      setSelectedIndex((i) => Math.max(i - 1, 0));
+      list.prev();
     } else if (key.tab) {
       // reserved for future panel cycling (Needs-You / Agents) — no-op for now
     }
   });
 
   const selectedTask = sortedTasks.find((t) => t.id === selectedId) ?? null;
+
+  if (view === "personal") return <PersonalView />;
 
   return (
     <PanelRouter
@@ -95,7 +101,7 @@ export function App() {
       events={data.events}
       notes={data.notes}
       pickerOpen={pickerOpen}
-      pickerIndex={pickerIndex}
+      pickerIndex={picker.index}
       showAll={showAll}
     />
   );

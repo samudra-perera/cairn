@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 import type { Task, TaskStatus } from "../core/tasks";
+import { SelectableRow } from "./SelectableRow";
 
 export const STATUS_ORDER: TaskStatus[] = ["todo", "doing", "review", "done"];
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -27,13 +28,12 @@ export function TasksPanel({ tasks, selectedId, showAll }: Props) {
           <Box key={status} flexDirection="column" marginTop={1}>
             <Text dimColor>{STATUS_LABEL[status]}</Text>
             {inGroup.map((t) => {
-              const isSelected = t.id === selectedId;
               return (
-                <Text key={t.id} color={isSelected ? "cyan" : undefined}>
-                  {isSelected ? "> " : "  "}#{t.id} {t.title}
+                <SelectableRow key={t.id} selected={t.id === selectedId}>
+                  #{t.id} {t.title}
                   {showAll && t.branch ? <Text dimColor> [{t.branch}]</Text> : null}
                   {t.claimedBy ? ` (${t.claimedBy})` : ""}
-                </Text>
+                </SelectableRow>
               );
             })}
           </Box>

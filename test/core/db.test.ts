@@ -14,12 +14,21 @@ describe("core/db", () => {
       .all()
       .map((r) => r.name);
 
-    for (const expected of ["features", "tasks", "notes", "events", "refs", "agent_seen"]) {
+    for (const expected of [
+      "features",
+      "tasks",
+      "notes",
+      "events",
+      "refs",
+      "agent_seen",
+      "personal_items",
+      "personal_completions",
+    ]) {
       expect(tables).toContain(expected);
     }
 
     const version = db.query<{ user_version: number }, []>("PRAGMA user_version;").get();
-    expect(version?.user_version).toBe(1);
+    expect(version?.user_version).toBe(2);
   });
 
   test("migrate is idempotent on a second call", () => {
@@ -28,7 +37,7 @@ describe("core/db", () => {
     expect(() => migrate(db)).not.toThrow();
 
     const version = db.query<{ user_version: number }, []>("PRAGMA user_version;").get();
-    expect(version?.user_version).toBe(1);
+    expect(version?.user_version).toBe(2);
   });
 
   test("FTS triggers populate tasks_fts on insert", () => {
