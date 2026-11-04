@@ -26,7 +26,7 @@ function getSharedDb(): Database {
  * else in tui/ imports core/ types only, keeping the core -> tui import
  * direction at zero.
  */
-export function useTasksData(selectedId: number | null): TasksData {
+export function useTasksData(selectedId: number | null, showAll: boolean): TasksData {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
@@ -37,7 +37,11 @@ export function useTasksData(selectedId: number | null): TasksData {
     const db = getSharedDb();
     const repoContext = getRepoContext();
     setTasks(
-      listTasks(db, { repo: repoContext.repoId, branch: repoContext.branch, scope: "branch" }),
+      listTasks(db, {
+        repo: repoContext.repoId,
+        branch: repoContext.branch,
+        scope: showAll ? "all" : "branch",
+      }),
     );
     setLoading(false);
   }
@@ -59,7 +63,7 @@ export function useTasksData(selectedId: number | null): TasksData {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [showAll]);
 
   useEffect(() => {
     const db = getSharedDb();

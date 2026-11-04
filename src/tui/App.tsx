@@ -18,8 +18,9 @@ export function App() {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerIndex, setPickerIndex] = useState(0);
+  const [showAll, setShowAll] = useState(false);
 
-  const data = useTasksData(selectedId);
+  const data = useTasksData(selectedId, showAll);
   const sortedTasks = useMemo(() => sortTasks(data.tasks), [data.tasks]);
 
   useEffect(() => {
@@ -64,6 +65,10 @@ export function App() {
       exit();
       return;
     }
+    if (input === "a") {
+      setShowAll((v) => !v);
+      return;
+    }
     if (sortedTasks.length === 0) return;
 
     if (input === "u" && selectedTask) {
@@ -91,6 +96,7 @@ export function App() {
       notes={data.notes}
       pickerOpen={pickerOpen}
       pickerIndex={pickerIndex}
+      showAll={showAll}
     />
   );
 }

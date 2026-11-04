@@ -14,6 +14,7 @@ interface Props {
   notes: Note[];
   pickerOpen: boolean;
   pickerIndex: number;
+  showAll: boolean;
 }
 
 /**
@@ -28,11 +29,12 @@ export function PanelRouter({
   notes,
   pickerOpen,
   pickerIndex,
+  showAll,
 }: Props) {
   return (
     <Box flexDirection="column">
       <Box flexDirection="row">
-        <TasksPanel tasks={tasks} selectedId={selectedId} />
+        <TasksPanel tasks={tasks} selectedId={selectedId} showAll={showAll} />
         <DetailPanel task={selectedTask} events={events} notes={notes} />
       </Box>
       {pickerOpen && selectedTask && (
