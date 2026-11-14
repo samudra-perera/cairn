@@ -45,19 +45,38 @@ describe("cairn me (CLI)", () => {
     expect(result.err).toContain("1 to 7");
   });
 
-  test("an agent can add but can't list, complete or undo", () => {
-    expect(cairn(["me", "add", "Book dentist"], "claude").code).toBe(0);
-    for (const args of [
-      ["me", "list"],
-      ["me", "done", "1"],
-      ["me", "undo", "1"],
-    ]) {
-      const result = cairn(args, "claude");
-      expect(result.code).toBe(1);
-      expect(result.err).toContain("private");
-    }
-    // What the agent added is there for the human.
-    expect(cairn(["me", "list"]).out).toContain("Book dentist");
+  test("an agent can add, list (slim), complete and undo", () => {
+    expect(cairn(["me", "add", "Book dentist"], "claude").out).toContain("#1");
+    cairn(["me", "add", "Gym", "--weekly", "3"]);
+
+    const list = cairn(["me", "list"], "claude");
+    expect(list.out).toContain("#1 [ ] Book dentist");
+    // No progress, streak or recurrence details for agents.
+    expect(list.out).not.toContain("this week");
+    expect(list.out).not.toContain("streak");
+
+    const json = JSON.parse(cairn(["me", "list", "--json"], "claude").out);
+    expect(json.data[0]).toEqual({ id: 1, title: "Book dentist", done: false });
+
+    const done = cairn(["me", "done", "2"], "claude");
+    expect(done.code).toBe(0);
+    expect(done.out).not.toContain("this week");
+    expect(cairn(["me", "undo", "2"], "claude").code).toBe(0);
+    // The human still sees the full picture.
+    expect(cairn(["me", "list"]).out).toContain("0/3 this week");
+  });
+
+  test("an agent can edit and delete; delete needs --yes since it can't be prompted", () => {
+    cairn(["me", "add", "Gym"]);
+    expect(cairn(["me", "edit", "1", "--title", "Lift"], "claude").out).toContain("Lift");
+
+    const refused = cairn(["me", "delete", "1"], "claude");
+    expect(refused.code).toBe(1);
+    expect(refused.err).toContain("--yes");
+    expect(cairn(["me", "list"]).out).toContain("Lift");
+
+    expect(cairn(["me", "delete", "1", "--yes"], "claude").code).toBe(0);
+    expect(cairn(["me", "list"]).out).toContain("Nothing on your personal list");
   });
 
   test("a human can edit the title and weekly target", () => {
@@ -88,18 +107,5 @@ describe("cairn me (CLI)", () => {
     expect(cairn(["me", "delete", "1", "--yes"]).out).toContain("deleted");
     expect(cairn(["me", "list"]).out).toContain("Nothing on your personal list");
     expect(cairn(["me", "delete", "1", "--yes"]).err).toContain("not found");
-  });
-
-  test("agents can't edit or delete", () => {
-    cairn(["me", "add", "Gym"]);
-    for (const args of [
-      ["me", "edit", "1", "--title", "x"],
-      ["me", "delete", "1", "--yes"],
-    ]) {
-      const result = cairn(args, "claude");
-      expect(result.code).toBe(1);
-      expect(result.err).toContain("private");
-    }
-    expect(cairn(["me", "list"]).out).toContain("Gym");
   });
 });
