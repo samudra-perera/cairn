@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { Event } from "./events";
+import type { PersonalItemView } from "./personal";
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -85,4 +86,16 @@ export function formatTimestamp(iso: string, now: Date = new Date(), timeZone?: 
 
   const age = now.getTime() - then.getTime();
   return age >= WEEK ? absolute : `${absolute} (${formatRelative(then, now)})`;
+}
+
+/**
+ * The progress text that follows a personal item's title, e.g.
+ * "1/3 this week · streak 2 · done today". One-off items have none.
+ */
+export function describePersonalItem(item: PersonalItemView): string {
+  if (item.targetPerWeek === null) return item.doneToday ? "done" : "";
+  const parts = [`${item.doneThisWeek}/${item.targetPerWeek} this week`];
+  if (item.streak > 0) parts.push(`streak ${item.streak}`);
+  if (item.doneToday) parts.push("done today");
+  return parts.join(" · ");
 }

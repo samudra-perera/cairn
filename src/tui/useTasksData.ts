@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from "react";
-import type { Database } from "bun:sqlite";
-import { getDataVersion, openDb } from "../core/db";
+import { useEffect, useState } from "react";
 import { callerIdentity, getAgent, getRepoContext } from "../core/context";
 import { type Task, type TaskStatus, listTasks, setStatus } from "../core/tasks";
 import { type Event, listEvents } from "../core/events";
 import { type Note, listNotesForTask } from "../core/notes";
+import { getSharedDb } from "./sharedDb";
+import { useDataPolling } from "./useDataPolling";
 
 export interface TasksData {
   tasks: Task[];
@@ -14,24 +14,16 @@ export interface TasksData {
   changeStatus: (id: number, status: TaskStatus) => void;
 }
 
-let sharedDb: Database | null = null;
-function getSharedDb(): Database {
-  if (!sharedDb) sharedDb = openDb();
-  return sharedDb;
-}
-
 /**
- * The only hook in the TUI that imports core/ query functions (openDb,
- * getDataVersion, listTasks, listEvents, listNotesForTask) — everything
- * else in tui/ imports core/ types only, keeping the core -> tui import
- * direction at zero.
+ * The task data hook. Data hooks (this one and usePersonalData) are the only
+ * TUI code that imports core/ query functions — components import core/ types
+ * only, keeping the core -> tui import direction at zero.
  */
 export function useTasksData(selectedId: number | null, showAll: boolean): TasksData {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
-  const lastVersionRef = useRef<number | null>(null);
 
   function refreshTasks() {
     const db = getSharedDb();
@@ -51,19 +43,7 @@ export function useTasksData(selectedId: number | null, showAll: boolean): Tasks
     refreshTasks();
   }
 
-  useEffect(() => {
-    const db = getSharedDb();
-    refreshTasks();
-    const interval = setInterval(() => {
-      const version = getDataVersion(db);
-      if (version !== lastVersionRef.current) {
-        lastVersionRef.current = version;
-        refreshTasks();
-      }
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [showAll]);
+  useDataPolling(refreshTasks, [showAll]);
 
   useEffect(() => {
     const db = getSharedDb();

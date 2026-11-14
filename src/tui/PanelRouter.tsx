@@ -32,8 +32,8 @@ export function PanelRouter({
   showAll,
 }: Props) {
   return (
-    <Box flexDirection="column">
-      <Box flexDirection="row">
+    <Box flexDirection="column" flexGrow={1}>
+      <Box flexDirection="row" flexGrow={1}>
         <TasksPanel tasks={tasks} selectedId={selectedId} showAll={showAll} />
         <DetailPanel task={selectedTask} events={events} notes={notes} />
       </Box>

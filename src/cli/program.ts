@@ -10,6 +10,7 @@ import { registerSearchCommand } from "./commands/search";
 import { registerEditCommand } from "./commands/edit";
 import { registerInitCommand } from "./commands/init";
 import { registerAssignTaskCommand } from "./commands/assign";
+import { registerMeCommand } from "./commands/me";
 
 export function buildProgram(): Command {
   const program = new Command();
@@ -29,6 +30,7 @@ export function buildProgram(): Command {
   registerEditCommand(program);
   registerInitCommand(program);
   registerAssignTaskCommand(program);
+  registerMeCommand(program);
 
   return program;
 }

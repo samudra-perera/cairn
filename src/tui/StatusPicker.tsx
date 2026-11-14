@@ -1,5 +1,6 @@
 import { Box, Text } from "ink";
 import type { TaskStatus } from "../core/tasks";
+import { SelectableRow } from "./SelectableRow";
 
 interface Props {
   statuses: TaskStatus[];
@@ -11,13 +12,11 @@ export function StatusPicker({ statuses, highlighted, current }: Props) {
     <Box flexDirection="column" borderStyle="single" paddingX={1}>
       <Text bold>Move to...</Text>
       {statuses.map((status, i) => {
-        const isHighlighted = i === highlighted;
         return (
-          <Text key={status} color={isHighlighted ? "cyan" : undefined}>
-            {isHighlighted ? "> " : "  "}
+          <SelectableRow key={status} selected={i === highlighted}>
             {status}
             {status === current && " (current)"}
-          </Text>
+          </SelectableRow>
         );
       })}
     </Box>
