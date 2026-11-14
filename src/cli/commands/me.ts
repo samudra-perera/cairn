@@ -26,11 +26,6 @@ const editOptionsSchema = z.object({
   once: z.boolean().optional(),
 });
 
-/** The personal list is private to the human: agents may add to it, nothing else. */
-function requireHuman(ctx: CliContext): void {
-  if (ctx.isAgent) fail(ctx, "the personal list is private; agents can only use `cairn me add`");
-}
-
 function printItem(item: PersonalItem): void {
   const weekly = item.targetPerWeek ? ` (${item.targetPerWeek}x per week)` : "";
   console.log(`#${item.id} ${item.title}${weekly}`);
@@ -77,14 +72,24 @@ export function registerMeCommand(program: Command): void {
     .description("show your personal list")
     .action((_rawOptions: unknown, thisCommand: Command) => {
       const ctx = buildCliContext(thisCommand.optsWithGlobals());
-      requireHuman(ctx);
+      const items = listPersonalItems(ctx.db);
 
-      emit(ctx, listPersonalItems(ctx.db), (items) => {
-        if (items.length === 0) {
+      // Agents only need enough to pick an id: no progress, streaks or dates.
+      if (ctx.isAgent) {
+        const slim = items.map((i) => ({ id: i.id, title: i.title, done: i.settled }));
+        emit(ctx, slim, (rows) => {
+          if (rows.length === 0) console.log("Nothing on the personal list.");
+          for (const r of rows) console.log(`#${r.id} ${r.done ? "[x]" : "[ ]"} ${r.title}`);
+        });
+        return;
+      }
+
+      emit(ctx, items, (rows) => {
+        if (rows.length === 0) {
           console.log("Nothing on your personal list.");
           return;
         }
-        for (const item of items) {
+        for (const item of rows) {
           const progress = describePersonalItem(item);
           const mark = item.settled ? "[x]" : "[ ]";
           console.log(`#${item.id} ${mark} ${item.title}${progress ? `  ${progress}` : ""}`);
@@ -96,7 +101,6 @@ export function registerMeCommand(program: Command): void {
     .description("mark a personal item done for today")
     .action((idArg: string, _rawOptions: unknown, thisCommand: Command) => {
       const ctx = buildCliContext(thisCommand.optsWithGlobals());
-      requireHuman(ctx);
       const id = parseId(ctx, idArg);
 
       const result = completePersonalItem(ctx.db, id);
@@ -107,6 +111,11 @@ export function registerMeCommand(program: Command): void {
             ? `personal item ${id} not found`
             : `personal item ${id} is already done`,
         );
+      }
+      // Agents just get an acknowledgement, without progress or streak details.
+      if (ctx.isAgent) {
+        emit(ctx, { id }, () => console.log(`#${id} done`));
+        return;
       }
       const item = listPersonalItems(ctx.db).find((i) => i.id === id);
       emit(ctx, item ?? { id }, () => {
@@ -119,7 +128,6 @@ export function registerMeCommand(program: Command): void {
     .description("undo today's completion of a personal item")
     .action((idArg: string, _rawOptions: unknown, thisCommand: Command) => {
       const ctx = buildCliContext(thisCommand.optsWithGlobals());
-      requireHuman(ctx);
       const id = parseId(ctx, idArg);
 
       const result = undoPersonalItem(ctx.db, id);
@@ -145,7 +153,6 @@ export function registerMeCommand(program: Command): void {
     .addOption(new Option("--once", "make it a one-off item").conflicts("weekly"))
     .action((idArg: string, rawOptions: unknown, thisCommand: Command) => {
       const ctx = buildCliContext(thisCommand.optsWithGlobals());
-      requireHuman(ctx);
       const id = parseId(ctx, idArg);
 
       const parsed = editOptionsSchema.safeParse(rawOptions);
@@ -170,7 +177,6 @@ export function registerMeCommand(program: Command): void {
     .option("-y, --yes", "skip the confirmation prompt")
     .action(async (idArg: string, rawOptions: { yes?: boolean }, thisCommand: Command) => {
       const ctx = buildCliContext(thisCommand.optsWithGlobals());
-      requireHuman(ctx);
       const id = parseId(ctx, idArg);
 
       const item = getPersonalItem(ctx.db, id);
