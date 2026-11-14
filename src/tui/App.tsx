@@ -5,6 +5,8 @@ import { useTasksData } from "./useTasksData";
 import { PanelRouter } from "./PanelRouter";
 import { STATUS_ORDER } from "./TasksPanel";
 import { PersonalView } from "./PersonalView";
+import { FullScreen } from "./FullScreen";
+import { enterFullscreen } from "./fullscreen";
 import { useCursor } from "./useCursor";
 
 function sortTasks(tasks: Task[]): Task[] {
@@ -91,22 +93,33 @@ export function App() {
 
   const selectedTask = sortedTasks.find((t) => t.id === selectedId) ?? null;
 
-  if (view === "personal") return <PersonalView />;
+  if (view === "personal") {
+    return (
+      <FullScreen>
+        <PersonalView />
+      </FullScreen>
+    );
+  }
 
   return (
-    <PanelRouter
-      tasks={sortedTasks}
-      selectedId={selectedId}
-      selectedTask={selectedTask}
-      events={data.events}
-      notes={data.notes}
-      pickerOpen={pickerOpen}
-      pickerIndex={picker.index}
-      showAll={showAll}
-    />
+    <FullScreen>
+      <PanelRouter
+        tasks={sortedTasks}
+        selectedId={selectedId}
+        selectedTask={selectedTask}
+        events={data.events}
+        notes={data.notes}
+        pickerOpen={pickerOpen}
+        pickerIndex={picker.index}
+        showAll={showAll}
+      />
+    </FullScreen>
   );
 }
 
 export function renderTui(): void {
-  render(<App />);
+  const restoreScreen = enterFullscreen();
+  const instance = render(<App />);
+  // q and Ctrl+C both end up here; signals and crashes are handled in enterFullscreen.
+  void instance.waitUntilExit().finally(restoreScreen);
 }

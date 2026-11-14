@@ -42,7 +42,7 @@ export function PersonalView() {
   });
 
   return (
-    <Box flexDirection="column" borderStyle="single" paddingX={1}>
+    <Box flexDirection="column" borderStyle="single" paddingX={1} flexGrow={1}>
       <Text bold>Personal</Text>
       {items.length === 0 && (
         <Text dimColor>Nothing here yet. Add one with: cairn me add "..." [--weekly 3]</Text>
