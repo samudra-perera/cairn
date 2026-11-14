@@ -9,7 +9,7 @@ const LEAVE_ALT_SCREEN = "\x1b[?1049l";
  * the alternate screen is broken for the user. Does nothing if stdout isn't a
  * terminal (piped output, tests).
  */
-export function enterFullscreen(stdout: NodeJS.WriteStream = process.stdout): () => void {
+export function enterAltScreen(stdout: NodeJS.WriteStream = process.stdout): () => void {
   if (!stdout.isTTY) return () => {};
 
   let restored = false;

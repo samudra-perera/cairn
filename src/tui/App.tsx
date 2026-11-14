@@ -6,7 +6,7 @@ import { PanelRouter } from "./PanelRouter";
 import { STATUS_ORDER } from "./TasksPanel";
 import { PersonalView } from "./PersonalView";
 import { FullScreen } from "./FullScreen";
-import { enterFullscreen } from "./fullscreen";
+import { enterAltScreen } from "./altScreen";
 import { useCursor } from "./useCursor";
 
 function sortTasks(tasks: Task[]): Task[] {
@@ -118,8 +118,8 @@ export function App() {
 }
 
 export function renderTui(): void {
-  const restoreScreen = enterFullscreen();
+  const restoreScreen = enterAltScreen();
   const instance = render(<App />);
-  // q and Ctrl+C both end up here; signals and crashes are handled in enterFullscreen.
+  // q and Ctrl+C both end up here; signals and crashes are handled in enterAltScreen.
   void instance.waitUntilExit().finally(restoreScreen);
 }
