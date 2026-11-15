@@ -85,11 +85,43 @@ describe("cairn done records branch commits", () => {
     expect(cairn(["show", "1"]).out).not.toContain("commits:");
   });
 
-  test("done from a different branch than the task's records nothing", () => {
-    cairn(["add", "the task"]); // belongs to feat/work
+  test("done works from a different branch than the one the task was created on", () => {
+    cairn(["add", "the task"]); // created on feat/work
     git(["checkout", "-q", "-b", "feat/other"]);
-    commit("unrelated work");
-    expect(cairn(["done", "1", "--summary", "s"]).out).not.toContain("recorded");
+    commit("the real work");
+    expect(cairn(["done", "1", "--summary", "s"]).out).toContain("recorded 1 commit");
+  });
+
+  test("done from a different repo than the task's records nothing", () => {
+    cairn(["add", "the task"]);
+    const other = mkdtempSync(join(tmpdir(), "cairn-done-other-repo-"));
+    try {
+      const run = (args: string[]) => {
+        const r = Bun.spawnSync(["git", ...args], { cwd: other, stdout: "pipe", stderr: "pipe" });
+        if (r.exitCode !== 0) throw new Error(r.stderr.toString());
+      };
+      run(["init", "-q", "-b", "main"]);
+      run(["config", "user.email", "t@example.com"]);
+      run(["config", "user.name", "T"]);
+      writeFileSync(join(other, "a.txt"), "a");
+      run(["add", "."]);
+      run(["commit", "-q", "-m", "init"]);
+      run(["checkout", "-q", "-b", "feat/z"]);
+      writeFileSync(join(other, "b.txt"), "b");
+      run(["add", "."]);
+      run(["commit", "-q", "-m", "work in another repo"]);
+
+      const env = {
+        ...process.env,
+        CAIRN_DB_PATH: join(dir, ".cairn-test.db"),
+        CAIRN_CONFIG_PATH: join(dir, ".cairn-test.json"),
+      };
+      const r = Bun.spawnSync(["bun", ENTRY, "done", "1", "--summary", "s"], { cwd: other, env });
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout.toString()).not.toContain("recorded");
+    } finally {
+      rmSync(other, { recursive: true, force: true });
+    }
   });
 
   describe("cairn update", () => {
@@ -151,13 +183,12 @@ describe("cairn done records branch commits", () => {
       expect(cairn(["update", "1", "--note", "  "]).err).toContain("note can't be empty");
     });
 
-    test("from another branch it records nothing but still takes the note", () => {
-      cairn(["add", "the task"]); // belongs to feat/work
+    test("from another branch than the task's it still records commits and takes the note", () => {
+      cairn(["add", "the task"]); // created on feat/work
       git(["checkout", "-q", "-b", "feat/other"]);
-      commit("unrelated");
+      commit("on the other branch");
       const update = cairn(["update", "1", "--note", "left a note"]);
-      expect(update.out).toContain("note added");
-      expect(update.out).not.toContain("recorded");
+      expect(update.out).toContain("recorded 1 commit, note added");
     });
   });
 });
