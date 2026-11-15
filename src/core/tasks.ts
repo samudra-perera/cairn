@@ -302,3 +302,43 @@ export function updateTaskContent(
   logEvent(db, { taskId: id, actor, kind: "edited", data: {} });
   return rowToTask(row);
 }
+
+export type CurrentTaskResult =
+  | { ok: true; task: Task; via: "branch" | "claimed" }
+  | { ok: false; reason: "none" | "ambiguous"; candidates: Task[] };
+
+/**
+ * The task the caller most likely means by "the one I'm working on", for
+ * commands run without an id:
+ *   1. open (not done) tasks on the current repo + branch: if exactly one, it;
+ *      if several, the one the caller has claimed, when that's unambiguous;
+ *   2. with none on this branch, the caller's one `doing` task in this repo,
+ *      since tasks are often created on one branch and worked on another.
+ * Anything else is "none" or "ambiguous", with the candidates to choose from.
+ */
+export function findCurrentTask(
+  db: Database,
+  where: { repo: string | null; branch: string | null; actor: string },
+): CurrentTaskResult {
+  if (where.repo === null) return { ok: false, reason: "none", candidates: [] };
+
+  const open = (tasks: Task[]) => tasks.filter((t) => t.status !== "done");
+
+  const onBranch =
+    where.branch === null
+      ? []
+      : open(listTasks(db, { repo: where.repo, branch: where.branch, scope: "branch" }));
+  if (onBranch.length === 1 && onBranch[0]) return { ok: true, task: onBranch[0], via: "branch" };
+  if (onBranch.length > 1) {
+    const mine = onBranch.filter((t) => t.claimedBy === where.actor);
+    if (mine.length === 1 && mine[0]) return { ok: true, task: mine[0], via: "branch" };
+    return { ok: false, reason: "ambiguous", candidates: onBranch };
+  }
+
+  const claimed = listTasks(db, { repo: where.repo, branch: null, scope: "repo" }).filter(
+    (t) => t.claimedBy === where.actor && t.status === "doing",
+  );
+  if (claimed.length === 1 && claimed[0]) return { ok: true, task: claimed[0], via: "claimed" };
+  if (claimed.length > 1) return { ok: false, reason: "ambiguous", candidates: claimed };
+  return { ok: false, reason: "none", candidates: [] };
+}

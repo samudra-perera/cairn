@@ -191,4 +191,57 @@ describe("cairn done records branch commits", () => {
       expect(update.out).toContain("recorded 1 commit, note added");
     });
   });
+
+  describe("without an id", () => {
+    test("done and update use the task on this branch", () => {
+      cairn(["add", "the task"]);
+      commit("a change");
+
+      const update = cairn(["update"]);
+      expect(update.out).toContain("#1 updated: recorded 1 commit");
+      expect(update.err).toContain('using #1 "the task" (on this branch)');
+
+      const done = cairn(["done", "--summary", "finished"]);
+      expect(done.out).toContain("#1 -> done");
+      expect(done.err).toContain("using #1");
+    });
+
+    test("--json stays clean: no inference message, same output shape", () => {
+      cairn(["add", "the task"]);
+      const done = cairn(["done", "--summary", "s", "--json"]);
+      expect(done.err).toBe("");
+      expect(JSON.parse(done.out).data.id).toBe(1);
+    });
+
+    test("picks the one you have in progress when the task is on another branch", () => {
+      cairn(["add", "created elsewhere"]); // on feat/work
+      cairn(["claim", "1"]);
+      git(["checkout", "-q", "-b", "feat/other"]);
+      commit("the work");
+
+      const update = cairn(["update"]);
+      expect(update.out).toContain("recorded 1 commit");
+      expect(update.err).toContain("the one you have in progress");
+    });
+
+    test("fails clearly when it can't tell, and an explicit id still wins", () => {
+      expect(cairn(["done", "--summary", "s"]).err).toContain("no task to infer");
+
+      cairn(["add", "first"]);
+      cairn(["add", "second"]);
+      const ambiguous = cairn(["update"]);
+      expect(ambiguous.code).toBe(1);
+      expect(ambiguous.err).toContain("more than one task fits (#1 first, #2 second)");
+
+      expect(cairn(["update", "2"]).out).toContain("#2");
+    });
+
+    test("an agent infers it the same way, using its own claims", () => {
+      cairn(["add", "mine"]);
+      cairn(["add", "someone else's"]);
+      cairn(["claim", "2"], "claude");
+      const update = cairn(["update", "--note", "going"], "claude");
+      expect(update.out).toContain("#2 updated: note added");
+    });
+  });
 });
