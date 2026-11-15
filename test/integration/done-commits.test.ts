@@ -1,0 +1,247 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+const ENTRY = join(import.meta.dir, "../../src/index.ts");
+
+describe("cairn done records branch commits", () => {
+  let dir: string;
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), "cairn-done-commits-"));
+    git(["init", "-q", "-b", "main"]);
+    git(["config", "user.email", "t@example.com"]);
+    git(["config", "user.name", "T"]);
+    commit("init");
+    git(["checkout", "-q", "-b", "feat/work"]);
+  });
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  function git(args: string[]) {
+    const r = Bun.spawnSync(["git", ...args], { cwd: dir, stdout: "pipe", stderr: "pipe" });
+    if (r.exitCode !== 0) throw new Error(`git ${args.join(" ")}: ${r.stderr.toString()}`);
+  }
+  function commit(message: string) {
+    writeFileSync(join(dir, `${message.replace(/\W+/g, "-")}.txt`), message);
+    git(["add", "."]);
+    git(["commit", "-q", "-m", message]);
+  }
+  function cairn(args: string[], agent?: string) {
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+      CAIRN_DB_PATH: join(dir, ".cairn-test.db"),
+      CAIRN_CONFIG_PATH: join(dir, ".cairn-test.json"),
+      CAIRN_AGENT: agent,
+    };
+    if (!agent) delete env.CAIRN_AGENT;
+    const r = Bun.spawnSync(["bun", ENTRY, ...args], { cwd: dir, env });
+    return { code: r.exitCode, out: r.stdout.toString(), err: r.stderr.toString() };
+  }
+
+  test("done records the branch's commits and show lists them", () => {
+    cairn(["add", "the task"]);
+    commit("add the parser");
+    commit("handle empty input");
+
+    const done = cairn(["done", "1", "--summary", "finished"]);
+    expect(done.out).toContain("recorded 2 commits");
+
+    const show = cairn(["show", "1"]).out;
+    expect(show).toContain("commits:");
+    expect(show).toMatch(/[0-9a-f]{7,} add the parser\n\s+[0-9a-f]{7,} handle empty input/);
+    expect(show).toContain("recorded 2 commits");
+  });
+
+  test("done twice only records new commits, and --json carries them", () => {
+    cairn(["add", "the task"]);
+    commit("first");
+    cairn(["done", "1", "--summary", "s"]);
+    commit("second");
+
+    const again = JSON.parse(cairn(["done", "1", "--summary", "s2", "--json"]).out);
+    expect(again.data.commits.map((c: { subject: string }) => c.subject)).toEqual(["second"]);
+
+    const show = JSON.parse(cairn(["show", "1", "--json"]).out);
+    expect(show.data.commits.map((c: { subject: string }) => c.subject)).toEqual([
+      "first",
+      "second",
+    ]);
+  });
+
+  test("an agent running done records them too", () => {
+    cairn(["add", "the task"]);
+    commit("agent work");
+    expect(cairn(["done", "1", "--summary", "s"], "claude").out).toContain("recorded 1 commit");
+  });
+
+  test("no new commits means nothing is recorded or printed", () => {
+    cairn(["add", "the task"]);
+    const done = cairn(["done", "1", "--summary", "s"]);
+    expect(done.out).not.toContain("recorded");
+    expect(cairn(["show", "1"]).out).not.toContain("commits:");
+  });
+
+  test("done works from a different branch than the one the task was created on", () => {
+    cairn(["add", "the task"]); // created on feat/work
+    git(["checkout", "-q", "-b", "feat/other"]);
+    commit("the real work");
+    expect(cairn(["done", "1", "--summary", "s"]).out).toContain("recorded 1 commit");
+  });
+
+  test("done from a different repo than the task's records nothing", () => {
+    cairn(["add", "the task"]);
+    const other = mkdtempSync(join(tmpdir(), "cairn-done-other-repo-"));
+    try {
+      const run = (args: string[]) => {
+        const r = Bun.spawnSync(["git", ...args], { cwd: other, stdout: "pipe", stderr: "pipe" });
+        if (r.exitCode !== 0) throw new Error(r.stderr.toString());
+      };
+      run(["init", "-q", "-b", "main"]);
+      run(["config", "user.email", "t@example.com"]);
+      run(["config", "user.name", "T"]);
+      writeFileSync(join(other, "a.txt"), "a");
+      run(["add", "."]);
+      run(["commit", "-q", "-m", "init"]);
+      run(["checkout", "-q", "-b", "feat/z"]);
+      writeFileSync(join(other, "b.txt"), "b");
+      run(["add", "."]);
+      run(["commit", "-q", "-m", "work in another repo"]);
+
+      const env = {
+        ...process.env,
+        CAIRN_DB_PATH: join(dir, ".cairn-test.db"),
+        CAIRN_CONFIG_PATH: join(dir, ".cairn-test.json"),
+      };
+      const r = Bun.spawnSync(["bun", ENTRY, "done", "1", "--summary", "s"], { cwd: other, env });
+      expect(r.exitCode).toBe(0);
+      expect(r.stdout.toString()).not.toContain("recorded");
+    } finally {
+      rmSync(other, { recursive: true, force: true });
+    }
+  });
+
+  describe("cairn update", () => {
+    test("records new commits without changing the status", () => {
+      cairn(["add", "the task"]);
+      cairn(["claim", "1"]);
+      commit("checkpoint one");
+
+      const update = cairn(["update", "1"]);
+      expect(update.out).toContain("#1 updated: recorded 1 commit [doing]");
+      expect(cairn(["show", "1"]).out).toMatch(/commits:\n\s+[0-9a-f]{7,} checkpoint one/);
+    });
+
+    test("can be repeated as work continues, recording only what's new", () => {
+      cairn(["add", "the task"]);
+      commit("one");
+      cairn(["update", "1"]);
+      commit("two");
+      commit("three");
+
+      expect(cairn(["update", "1"]).out).toContain("recorded 2 commits");
+      expect(cairn(["update", "1"]).out).toContain("nothing new to record");
+
+      const show = JSON.parse(cairn(["show", "1", "--json"]).out);
+      expect(show.data.commits.map((c: { subject: string }) => c.subject)).toEqual([
+        "one",
+        "two",
+        "three",
+      ]);
+    });
+
+    test("--note adds a note, with or without new commits", () => {
+      cairn(["add", "the task"]);
+      const withNote = cairn(["update", "1", "--note", "stopped at the parser; next: tests"]);
+      expect(withNote.out).toContain("#1 updated: note added");
+      expect(cairn(["show", "1"]).out).toContain("stopped at the parser; next: tests");
+
+      commit("more");
+      expect(cairn(["update", "1", "--note", "tests done"]).out).toContain(
+        "recorded 1 commit, note added",
+      );
+    });
+
+    test("an agent can checkpoint, and done afterwards doesn't repeat commits", () => {
+      cairn(["add", "the task"]);
+      commit("agent step");
+      expect(cairn(["update", "1", "--note", "halfway"], "claude").out).toContain(
+        "recorded 1 commit",
+      );
+      const done = cairn(["done", "1", "--summary", "finished"], "claude");
+      expect(done.out).toContain("#1 -> review");
+      expect(done.out).not.toContain("recorded");
+    });
+
+    test("rejects an unknown task, a bad id and an empty note", () => {
+      expect(cairn(["update", "99"]).err).toContain("not found");
+      expect(cairn(["update", "abc"]).err).toContain("not a valid id");
+      cairn(["add", "the task"]);
+      expect(cairn(["update", "1", "--note", "  "]).err).toContain("note can't be empty");
+    });
+
+    test("from another branch than the task's it still records commits and takes the note", () => {
+      cairn(["add", "the task"]); // created on feat/work
+      git(["checkout", "-q", "-b", "feat/other"]);
+      commit("on the other branch");
+      const update = cairn(["update", "1", "--note", "left a note"]);
+      expect(update.out).toContain("recorded 1 commit, note added");
+    });
+  });
+
+  describe("without an id", () => {
+    test("done and update use the task on this branch", () => {
+      cairn(["add", "the task"]);
+      commit("a change");
+
+      const update = cairn(["update"]);
+      expect(update.out).toContain("#1 updated: recorded 1 commit");
+      expect(update.err).toContain('using #1 "the task" (on this branch)');
+
+      const done = cairn(["done", "--summary", "finished"]);
+      expect(done.out).toContain("#1 -> done");
+      expect(done.err).toContain("using #1");
+    });
+
+    test("--json stays clean: no inference message, same output shape", () => {
+      cairn(["add", "the task"]);
+      const done = cairn(["done", "--summary", "s", "--json"]);
+      expect(done.err).toBe("");
+      expect(JSON.parse(done.out).data.id).toBe(1);
+    });
+
+    test("picks the one you have in progress when the task is on another branch", () => {
+      cairn(["add", "created elsewhere"]); // on feat/work
+      cairn(["claim", "1"]);
+      git(["checkout", "-q", "-b", "feat/other"]);
+      commit("the work");
+
+      const update = cairn(["update"]);
+      expect(update.out).toContain("recorded 1 commit");
+      expect(update.err).toContain("the one you have in progress");
+    });
+
+    test("fails clearly when it can't tell, and an explicit id still wins", () => {
+      expect(cairn(["done", "--summary", "s"]).err).toContain("no task to infer");
+
+      cairn(["add", "first"]);
+      cairn(["add", "second"]);
+      const ambiguous = cairn(["update"]);
+      expect(ambiguous.code).toBe(1);
+      expect(ambiguous.err).toContain("more than one task fits (#1 first, #2 second)");
+
+      expect(cairn(["update", "2"]).out).toContain("#2");
+    });
+
+    test("an agent infers it the same way, using its own claims", () => {
+      cairn(["add", "mine"]);
+      cairn(["add", "someone else's"]);
+      cairn(["claim", "2"], "claude");
+      const update = cairn(["update", "--note", "going"], "claude");
+      expect(update.out).toContain("#2 updated: note added");
+    });
+  });
+});

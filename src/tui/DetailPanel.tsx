@@ -3,6 +3,7 @@ import type { Task } from "../core/tasks";
 import type { Event } from "../core/events";
 import type { Note } from "../core/notes";
 import { describeEvent, formatTimestamp } from "../core/format";
+import { commitsFromEvents } from "../core/commits";
 
 interface TimelineItem {
   createdAt: string;
@@ -37,6 +38,7 @@ export function DetailPanel({ task, events, notes }: Props) {
   }
 
   const timeline = buildTimeline(events, notes);
+  const commits = commitsFromEvents(events);
 
   return (
     <Box flexDirection="column" borderStyle="single" paddingX={1} flexGrow={1} flexBasis={0}>
@@ -48,6 +50,16 @@ export function DetailPanel({ task, events, notes }: Props) {
       </Text>
       {task.body && <Text>{task.body}</Text>}
       {task.summary && <Text>summary: {task.summary}</Text>}
+      {commits.length > 0 && (
+        <Box marginTop={1} flexDirection="column">
+          <Text dimColor>commits</Text>
+          {commits.map((c) => (
+            <Text key={c.hash}>
+              {c.hash} {c.subject}
+            </Text>
+          ))}
+        </Box>
+      )}
       <Box marginTop={1} flexDirection="column">
         {timeline.length === 0 && <Text dimColor>No activity yet.</Text>}
         {timeline.map((item, i) => (

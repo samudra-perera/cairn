@@ -8,6 +8,7 @@ import { fail } from "./output";
 export interface CliContext {
   db: Database;
   repo: string | null;
+  repoRoot: string | null;
   branch: string | null;
   agent: string | null;
   /** Who is acting: the agent if CAIRN_AGENT is set, else the human's name from `cairn init`. */
@@ -33,6 +34,7 @@ export function buildCliContext(
   const ctx: CliContext = {
     db,
     repo: repoContext.repoId,
+    repoRoot: repoContext.repoRoot,
     branch: repoContext.branch,
     agent,
     actor: callerIdentity(),
