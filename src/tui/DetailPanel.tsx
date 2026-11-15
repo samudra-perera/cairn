@@ -30,7 +30,7 @@ interface Props {
 export function DetailPanel({ task, events, notes }: Props) {
   if (!task) {
     return (
-      <Box flexDirection="column" borderStyle="single" paddingX={1} flexGrow={1}>
+      <Box flexDirection="column" borderStyle="single" paddingX={1} flexGrow={1} flexBasis={0}>
         <Text dimColor>Select a task (j/k) to see its detail.</Text>
       </Box>
     );
@@ -39,7 +39,7 @@ export function DetailPanel({ task, events, notes }: Props) {
   const timeline = buildTimeline(events, notes);
 
   return (
-    <Box flexDirection="column" borderStyle="single" paddingX={1} flexGrow={1}>
+    <Box flexDirection="column" borderStyle="single" paddingX={1} flexGrow={1} flexBasis={0}>
       <Text bold>
         #{task.id} {task.title}
       </Text>

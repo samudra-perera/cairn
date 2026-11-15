@@ -1,6 +1,7 @@
 import { Box, Text } from "ink";
 import type { Task, TaskStatus } from "../core/tasks";
 import { SelectableRow } from "./SelectableRow";
+import { useTerminalSize } from "./useTerminalSize";
 
 export const STATUS_ORDER: TaskStatus[] = ["todo", "doing", "review", "done"];
 const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -10,6 +11,15 @@ const STATUS_LABEL: Record<TaskStatus, string> = {
   done: "Done",
 };
 
+const MIN_WIDTH = 42;
+const MAX_WIDTH = 80;
+const SHARE = 0.45;
+
+/** The task list takes a share of the terminal, within limits; the detail panel gets the rest. */
+export function tasksPanelWidth(columns: number): number {
+  return Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, Math.floor(columns * SHARE)));
+}
+
 interface Props {
   tasks: Task[];
   selectedId: number | null;
@@ -17,8 +27,15 @@ interface Props {
 }
 
 export function TasksPanel({ tasks, selectedId, showAll }: Props) {
+  const { columns } = useTerminalSize();
   return (
-    <Box flexDirection="column" borderStyle="single" paddingX={1} width={42}>
+    <Box
+      flexDirection="column"
+      borderStyle="single"
+      paddingX={1}
+      width={tasksPanelWidth(columns)}
+      flexShrink={0}
+    >
       <Text bold>{showAll ? "Tasks - All Branches" : "Tasks - Current Branch"}</Text>
       {tasks.length === 0 && <Text dimColor>No tasks yet.</Text>}
       {STATUS_ORDER.map((status) => {
