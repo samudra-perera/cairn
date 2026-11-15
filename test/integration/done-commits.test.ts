@@ -91,4 +91,73 @@ describe("cairn done records branch commits", () => {
     commit("unrelated work");
     expect(cairn(["done", "1", "--summary", "s"]).out).not.toContain("recorded");
   });
+
+  describe("cairn update", () => {
+    test("records new commits without changing the status", () => {
+      cairn(["add", "the task"]);
+      cairn(["claim", "1"]);
+      commit("checkpoint one");
+
+      const update = cairn(["update", "1"]);
+      expect(update.out).toContain("#1 updated: recorded 1 commit [doing]");
+      expect(cairn(["show", "1"]).out).toMatch(/commits:\n\s+[0-9a-f]{7,} checkpoint one/);
+    });
+
+    test("can be repeated as work continues, recording only what's new", () => {
+      cairn(["add", "the task"]);
+      commit("one");
+      cairn(["update", "1"]);
+      commit("two");
+      commit("three");
+
+      expect(cairn(["update", "1"]).out).toContain("recorded 2 commits");
+      expect(cairn(["update", "1"]).out).toContain("nothing new to record");
+
+      const show = JSON.parse(cairn(["show", "1", "--json"]).out);
+      expect(show.data.commits.map((c: { subject: string }) => c.subject)).toEqual([
+        "one",
+        "two",
+        "three",
+      ]);
+    });
+
+    test("--note adds a note, with or without new commits", () => {
+      cairn(["add", "the task"]);
+      const withNote = cairn(["update", "1", "--note", "stopped at the parser; next: tests"]);
+      expect(withNote.out).toContain("#1 updated: note added");
+      expect(cairn(["show", "1"]).out).toContain("stopped at the parser; next: tests");
+
+      commit("more");
+      expect(cairn(["update", "1", "--note", "tests done"]).out).toContain(
+        "recorded 1 commit, note added",
+      );
+    });
+
+    test("an agent can checkpoint, and done afterwards doesn't repeat commits", () => {
+      cairn(["add", "the task"]);
+      commit("agent step");
+      expect(cairn(["update", "1", "--note", "halfway"], "claude").out).toContain(
+        "recorded 1 commit",
+      );
+      const done = cairn(["done", "1", "--summary", "finished"], "claude");
+      expect(done.out).toContain("#1 -> review");
+      expect(done.out).not.toContain("recorded");
+    });
+
+    test("rejects an unknown task, a bad id and an empty note", () => {
+      expect(cairn(["update", "99"]).err).toContain("not found");
+      expect(cairn(["update", "abc"]).err).toContain("not a valid id");
+      cairn(["add", "the task"]);
+      expect(cairn(["update", "1", "--note", "  "]).err).toContain("note can't be empty");
+    });
+
+    test("from another branch it records nothing but still takes the note", () => {
+      cairn(["add", "the task"]); // belongs to feat/work
+      git(["checkout", "-q", "-b", "feat/other"]);
+      commit("unrelated");
+      const update = cairn(["update", "1", "--note", "left a note"]);
+      expect(update.out).toContain("note added");
+      expect(update.out).not.toContain("recorded");
+    });
+  });
 });

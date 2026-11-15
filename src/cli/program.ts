@@ -11,6 +11,7 @@ import { registerEditCommand } from "./commands/edit";
 import { registerInitCommand } from "./commands/init";
 import { registerAssignTaskCommand } from "./commands/assign";
 import { registerMeCommand } from "./commands/me";
+import { registerUpdateCommand } from "./commands/update";
 
 export function buildProgram(): Command {
   const program = new Command();
@@ -31,6 +32,7 @@ export function buildProgram(): Command {
   registerInitCommand(program);
   registerAssignTaskCommand(program);
   registerMeCommand(program);
+  registerUpdateCommand(program);
 
   return program;
 }
