@@ -4,6 +4,7 @@ import { emit, fail } from "../output";
 import { TaskNotFoundError, getTask } from "../../core/tasks";
 import { listEvents } from "../../core/events";
 import { listNotesForTask } from "../../core/notes";
+import { commitsFromEvents } from "../../core/commits";
 import { describeEvent, formatTimestamp } from "../../core/format";
 
 export function registerShowCommand(program: Command): void {
@@ -19,10 +20,16 @@ export function registerShowCommand(program: Command): void {
         const notes = listNotesForTask(ctx.db, id, { asAgent: ctx.isAgent });
         const events = listEvents(ctx.db, id);
 
-        emit(ctx, { task, notes, events }, ({ task, notes, events }) => {
+        const commits = commitsFromEvents(events);
+
+        emit(ctx, { task, notes, events, commits }, ({ task, notes, events, commits }) => {
           console.log(`#${task.id} ${task.title} [${task.status}]`);
           if (task.body) console.log(task.body);
           if (task.summary) console.log(`\nsummary: ${task.summary}`);
+          if (commits.length > 0) {
+            console.log(`\ncommits:`);
+            for (const c of commits) console.log(`  ${c.hash} ${c.subject}`);
+          }
           console.log(`\nnotes:`);
           for (const n of notes) {
             console.log(

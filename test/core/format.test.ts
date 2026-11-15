@@ -99,6 +99,15 @@ describe("core/format", () => {
       );
     });
 
+    test("commits say how many were recorded", () => {
+      const one = [{ hash: "abc1234", subject: "s" }];
+      expect(describeEvent(ev("commits", { commits: one }))).toBe("recorded 1 commit");
+      expect(describeEvent(ev("commits", { commits: [...one, ...one, ...one] }))).toBe(
+        "recorded 3 commits",
+      );
+      expect(describeEvent(ev("commits", { commits: 5 }))).toBe("commits");
+    });
+
     test("noted distinguishes private notes", () => {
       expect(describeEvent(ev("noted", { private: false }))).toBe("added a note");
       expect(describeEvent(ev("noted", { private: true }))).toBe("added a private note");

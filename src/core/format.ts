@@ -10,6 +10,7 @@ const WEEK = 7 * DAY;
 const statusData = z.object({ from: z.string(), to: z.string() });
 const assignedData = z.object({ assignedTo: z.string(), previous: z.string().nullable() });
 const notedData = z.object({ private: z.boolean() });
+const commitsData = z.object({ commits: z.array(z.unknown()) });
 
 /**
  * Turns an event into the part of a timeline line that follows the actor,
@@ -40,6 +41,12 @@ export function describeEvent(event: Event): string {
     case "noted": {
       const data = notedData.safeParse(event.data);
       return data.success && data.data.private ? "added a private note" : "added a note";
+    }
+    case "commits": {
+      const data = commitsData.safeParse(event.data);
+      if (!data.success) return event.kind;
+      const n = data.data.commits.length;
+      return `recorded ${n} commit${n === 1 ? "" : "s"}`;
     }
     default:
       return event.kind;
